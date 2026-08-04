@@ -5,51 +5,74 @@ console.log("Watching server.js for changes...");
 
 const watcher = chokidar.watch("server.js");
 
+let timer = null;
+let isPushing = false;
+
 watcher.on("change", () => {
 
-    console.log("server.js changed!");
+    console.log("Change detected...");
 
-    exec("git add .", (err) => {
+    // Cancel previous timer
+    clearTimeout(timer);
 
-        if (err) {
-            console.log(err);
+    // Wait 2 seconds after the last change
+    timer = setTimeout(() => {
+
+        if (isPushing) {
+            console.log("Push already in progress...");
             return;
         }
 
-        // Create a fresh timestamp for every change
-        const now = new Date();
+        isPushing = true;
 
-        const timestamp =
-            now.getFullYear() + "-" +
-            String(now.getMonth() + 1).padStart(2, "0") + "-" +
-            String(now.getDate()).padStart(2, "0") + " " +
-            String(now.getHours()).padStart(2, "0") + ":" +
-            String(now.getMinutes()).padStart(2, "0") + ":" +
-            String(now.getSeconds()).padStart(2, "0");
+        console.log("Starting Git Push...");
 
-        const commitMessage = `Auto Commit - ${timestamp}`;
-
-        exec(`git commit -m "${commitMessage}"`, (err) => {
+        exec("git add .", (err) => {
 
             if (err) {
-                console.log("Nothing to commit");
+                console.log(err);
+                isPushing = false;
                 return;
             }
 
-            exec("git push", (err, stdout, stderr) => {
+            const now = new Date();
+
+            const timestamp =
+                now.getFullYear() + "-" +
+                String(now.getMonth() + 1).padStart(2, "0") + "-" +
+                String(now.getDate()).padStart(2, "0") + " " +
+                String(now.getHours()).padStart(2, "0") + ":" +
+                String(now.getMinutes()).padStart(2, "0") + ":" +
+                String(now.getSeconds()).padStart(2, "0");
+
+            const commitMessage = `Auto Commit - ${timestamp}`;
+
+            exec(`git commit -m "${commitMessage}"`, (err) => {
 
                 if (err) {
-                    console.log(stderr);
+                    console.log("Nothing to commit");
+                    isPushing = false;
                     return;
                 }
 
-                console.log(stdout);
-                console.log("GitHub Updated Successfully");
+                exec("git push", (err, stdout, stderr) => {
+
+                    if (err) {
+                        console.log(stderr);
+                        isPushing = false;
+                        return;
+                    }
+
+                    console.log(stdout);
+                    console.log("GitHub Updated Successfully");
+
+                    isPushing = false;
+                });
 
             });
 
         });
 
-    });
+    }, 2000);
 
 });
