@@ -14,6 +14,6 @@ app.get("/add", (req, res) => {
 });
 
 app.listen(3000, () => {
-    conso
+    console.log("hello 
     console.log("Server Started on Port 3000");
 });
